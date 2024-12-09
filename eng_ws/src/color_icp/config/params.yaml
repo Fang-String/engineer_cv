@@ -1,0 +1,18 @@
+/color_icp:
+  ros__parameters:    
+    RgbdTopic:                         '/camera/depth_registered/points'
+    Src_Cloud:                         '/home/ubuntu/tools/tools_ws/src/color_icp/data/cloud_bin_00_easy.pcd'
+    Tar_Cloud:                         '/home/ubuntu/tools/tools_ws/src/color_icp/data/cloud_bin_00.pcd'
+    Downsample:                           true
+    Estimate_Normal:                      true
+    Voxel_Resolution:                     0.01
+    Normal_Est_Radius:                    0.05
+    Search_Radius:                        0.04
+    Icp_Method:                           2    # pcl=0, classic=1, color=2
+    Icp_Max_Corres_Dist:                  0.05
+    Icp_Transformation_Epsilon:           0.000001  # 0.001 meter and 0.256 degree
+    Icp_Max_Iterations:                   50
+    Color_Icp_Lambda:                     0.968  # default 0.968 as in the paper
+    Color_Weight:                         0    # average=0, srgb=1, ntsc=2
+    Color_Visualization:                  true
+    Precloud:                              false          
