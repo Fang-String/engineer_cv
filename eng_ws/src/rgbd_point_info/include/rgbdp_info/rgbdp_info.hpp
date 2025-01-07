@@ -8,6 +8,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include <cv_bridge/cv_bridge.h>
 #include <opencv4/opencv2/core.hpp>
+#include <opencv2/opencv.hpp>
 #include <opencv4/opencv2/highgui.hpp>
 #include "opencv4/opencv2/imgproc/imgproc.hpp"
 #include <opencv4/opencv2/video/tracking.hpp>
@@ -17,15 +18,19 @@
 #include <vector>
 #include <Eigen/Dense>         // 使用Eigen库处理矩阵
 #include <sensor_msgs/msg/point_cloud2.hpp>
+#include <sensor_msgs/msg/image.hpp>
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
+#include <pcl/point_cloud.h>
 #include <pcl/conversions.h>
 #include "pcl_conversions/pcl_conversions.h"
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <sensor_msgs/point_cloud_conversion.hpp>
 #include <std_msgs/msg/header.hpp>
+#include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/float32_multi_array.hpp>
 #include <geometry_msgs/msg/point32.hpp>
+#include <yaml-cpp/yaml.h>
 
 
 

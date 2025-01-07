@@ -40,7 +40,7 @@ class RGBDToPointCloud(Node):
         # 订阅 Mask 图像
         self.mask_sub = self.create_subscription(
             Image,  # 假设 mask 是 Image 类型的消息
-            '/camera/camera/mask',  # 订阅的 Mask 图像话题
+            '/mymask',  # 订阅的 Mask 图像话题
             self.mask_callback,
             10
         )
@@ -55,7 +55,7 @@ class RGBDToPointCloud(Node):
         self.get_logger().info("CvBridge initialized")
 
         # 加载相机信息
-        camera_info = load_camera_info('config/camera_info.yaml')
+        camera_info = load_camera_info('/home/ubuntu/tools/engineer_cv/eng_ws/scripts/rs/config/camera_info.yaml')
         self.camera_matrix = np.array(camera_info['camera_matrix']['data']).reshape(3, 3)
         self.dist_coeffs = np.array(camera_info['distortion_coefficients']['data'])
 
@@ -83,7 +83,7 @@ class RGBDToPointCloud(Node):
         depth_image = self.bridge.imgmsg_to_cv2(depth_image_msg, "32FC1")
 
         # 打印 frame_id
-        self.get_logger().info(f"Frame ID of the RGB image: {rgb_image_msg.header.frame_id}")
+        # self.get_logger().info(f"Frame ID of the RGB image: {rgb_image_msg.header.frame_id}")
 
         # 检查 mask 图像是否存在
         if self.mask_image is None:
@@ -132,15 +132,15 @@ class RGBDToPointCloud(Node):
         rgb = rgb_image[v_undistorted[valid].astype(int), u_undistorted[valid].astype(int)].astype(np.int32)
 
         # 打印 rgb 数组的形状进行调试
-        self.get_logger().info(f"Shape of rgb after filtering: {rgb.shape}")
+        # self.get_logger().info(f"Shape of rgb after filtering: {rgb.shape}")
 
         # 检查 rgb 数组的形状
-        assert rgb.ndim == 2 and rgb.shape[1] == 3, f"Unexpected shape of rgb: {rgb.shape}"
+        # assert rgb.ndim == 2 and rgb.shape[1] == 3, f"Unexpected shape of rgb: {rgb.shape}"
 
         rgb_data = (rgb[:, 2] * 256 * 256 + rgb[:, 1] * 256 + rgb[:, 0]).view(dtype=np.float32)
 
         # 打印 rgb_data 的前几个值进行调试
-        self.get_logger().info(f"First few values of rgb_data: {rgb_data[:10]}")
+        # self.get_logger().info(f"First few values of rgb_data: {rgb_data[:10]}")
 
         # 创建点云字段
         fields = [
@@ -166,7 +166,7 @@ class RGBDToPointCloud(Node):
         points_with_rgb['rgb'] = rgb_data
 
         # 打印 points_with_rgb 的前几个值进行调试
-        self.get_logger().info(f"First few values of points_with_rgb: {points_with_rgb[:10]}")
+        # self.get_logger().info(f"First few values of points_with_rgb: {points_with_rgb[:10]}")
 
         # 创建点云消息
         header = rgb_image_msg.header
@@ -184,7 +184,7 @@ class RGBDToPointCloud(Node):
     def save_data(self):
         if self.rgb_image is not None and self.points_with_rgb is not None:
             # 保存 RGB 图像为 PNG 文件
-            cv2.imwrite('/home/ubuntu/tools/scripts/img/rgb_image.png', self.rgb_image)
+            cv2.imwrite('img/rgb_image.png', self.rgb_image)
             self.get_logger().info("RGB image saved as rgb_image.png")
 
             # 提取 x, y, z 列并组合成一个新的 NumPy 数组
@@ -203,7 +203,7 @@ class RGBDToPointCloud(Node):
             pcd = o3d.geometry.PointCloud()
             pcd.points = o3d.utility.Vector3dVector(points_xyz)
             pcd.colors = o3d.utility.Vector3dVector(colors)
-            o3d.io.write_point_cloud('/home/ubuntu/tools/scripts/pcd/color_point_cloud.ply', pcd)  # 修改文件扩展名为 .ply
+            o3d.io.write_point_cloud('pcd/color_point_cloud.ply', pcd)  # 修改文件扩展名为 .ply
             self.get_logger().info("Point cloud saved as color_point_cloud.ply")
 
             # 停止定时器

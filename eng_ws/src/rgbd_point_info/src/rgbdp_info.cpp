@@ -11,41 +11,140 @@ public:
   : Node("rgbd_point_info_node")
   {
     initial = true;
+    std::string yaml_file;
+    this->declare_parameter<std::string>("camera_info_file", "");
+    this->get_parameter("camera_info_file", yaml_file);
+    if (yaml_file.empty()) {
+    RCLCPP_ERROR(this->get_logger(), "Camera info file parameter is empty!");
+    return;
+  }
+
+  // 加载 YAML 文件
+    if (!loadCameraInfo(yaml_file)) {
+      RCLCPP_ERROR(this->get_logger(), "Failed to load camera info from %s", yaml_file.c_str());
+      return;
+  }
     rgbd_sub_ = this->create_subscription<realsense2_camera_msgs::msg::RGBD>(
       "/camera/camera/rgbd", 10, std::bind(&RGBDPointInfoNode::rgbd_callback, this, std::placeholders::_1));
+    mask_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
+      "/mymask", 10, std::bind(&RGBDPointInfoNode::mask_callback, this, std::placeholders::_1));
     cv::namedWindow("RGB Image", cv::WINDOW_NORMAL);
-    pc_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/depth_cloud",10);
+    pc_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/mypointcloud",10);
+    rgb_publisher_ = this->create_publisher<sensor_msgs::msg::Image>("/myrgb",10);
   }
 
 
 private:
+  rclcpp::Subscription<realsense2_camera_msgs::msg::RGBD>::SharedPtr rgbd_sub_;
+  rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr mask_sub_;
+  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr trigger;
+  rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pc_publisher_;
+  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr rgb_publisher_;
+  bool initial;
+  int status;
+  cv::Mat rgb_image;
+  cv::Mat depth_image;
+  cv::Mat mask;
+  cv::Mat camera_matrix_;
+  cv::Mat dist_coeffs_;
   void rgbd_callback(const realsense2_camera_msgs::msg::RGBD::SharedPtr msg)
   {
-    try
-    {
       // 将ROS图像消息转换为OpenCV图像
-      cv::Mat rgb_image = cv_bridge::toCvCopy(msg->rgb, "bgr8")->image;
-      cv::Mat depth_image = cv_bridge::toCvCopy(msg->depth, "32FC1")->image;
-      //std::cerr << rgb_image.rows<<","<<rgb_image.cols<< ","<<depth_image.rows<<","<<depth_image.cols<< std::endl;
-      run(rgb_image, canvas,depth_image);
-      //getHSV();
-      rectshape(rgb_image,canvas, depth_image);
-      rgbd_pcl(depth_image );
+    rgb_image = cv_bridge::toCvCopy(msg->rgb, "bgr8")->image;
+    depth_image = cv_bridge::toCvCopy(msg->depth, "32FC1")->image;
+  }
+
+  void mask_callback(const sensor_msgs::msg::Image::SharedPtr msg)
+  {
+      // 将ROS图像消息转换为OpenCV图像
+    mask = cv_bridge::toCvCopy(msg, "mono8")->image;
+
+  }
+
+  void trigger_callback(const std_msgs::msg::Bool::SharedPtr msg)
+  {
+    if (msg->data) {
+
       
-      }
-    catch (cv_bridge::Exception& e)
-    {
-      RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
-    }
-    catch (std::exception& e)
-    {
-      RCLCPP_ERROR(this->get_logger(), "Standard exception: %s", e.what());
-    }
-    catch (...)
-    {
-      RCLCPP_ERROR(this->get_logger(), "Unknown exception occurred");
     }
   }
+  bool loadCameraInfo(const std::string &file_path) {
+    try {
+        YAML::Node config = YAML::LoadFile(file_path);
+
+        // 解析 camera_matrix
+        auto camera_matrix_data = config["camera_matrix"]["data"].as<std::vector<double>>();
+        camera_matrix_ = cv::Mat(3, 3, CV_64F, camera_matrix_data.data()).clone();
+
+        // 解析 distortion_coefficients
+        auto dist_coeffs_data = config["distortion_coefficients"]["data"].as<std::vector<double>>();
+        dist_coeffs_ = cv::Mat(1, dist_coeffs_data.size(), CV_64F, dist_coeffs_data.data()).clone();
+
+        RCLCPP_INFO(this->get_logger(), "Successfully loaded camera info.");
+        return true;
+    } catch (const std::exception &e) {
+        RCLCPP_ERROR(this->get_logger(), "Error parsing YAML file: %s", e.what());
+        return false;
+    }
+  }
+
+int rgbd_pcl(cv::Mat rgbImage,cv::Mat depthImage) {
+    // 假设depth_image和rgbImage是您的深度图和RGB
+    cv::Mat rgb_image_ = rgbImage;
+    cv::Mat depth_image_ = depthImage;
+
+
+    if (depth_image.empty() ) {
+        std::cerr << "无法读取图像!" << std::endl;
+        return -1;
+    }
+
+    int height = depth_image.rows;
+    int width = depth_image.cols;
+
+    // 相机内参
+    double fx = camera_matrix_.at<double>(0, 0);
+    double fy = camera_matrix_.at<double>(1, 1);
+    double cx = camera_matrix_.at<double>(0, 2);
+    double cy = camera_matrix_.at<double>(1, 2);\
+    //去畸变
+    cv::undistort(rgb_image,rgb_image,camera_matrix_,dist_coeffs_);
+
+
+    // 存储点云数据
+        pcl::PointCloud<pcl::PointXYZRGB>::Ptr mycloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+        for (int v = 0; v < height; ++v) {
+          for (int u = 0; u < width; ++u) {
+            float z;
+            if(mask.at<int>(v,u)>0){z = depth_image.at<float>(v, u)/1000;}// 读取深度
+            else {z=0;}
+            if (z > 0.35&&z<0.8) { // 确保深度值有效
+                double x = (u - cx) * z / fx;
+                double y = (v - cy) * z / fy;
+                pcl::PointXYZRGB point;
+                cv::Vec3b color = rgb_image.at<cv::Vec3b>(v, u);
+                uint8_t r = color[2];  // OpenCV 的颜色顺序为 BGR
+                uint8_t g = color[1];
+                uint8_t b = color[0];
+                point.x = z;
+                point.y = -x;
+                point.z = -y;//相机坐标系和世界坐标系转换
+                point.r = r;
+                point.g = g;
+                point.b = b;
+                mycloud->push_back(point);// 存储三维坐标
+                
+            }
+        }
+    }
+    sensor_msgs::msg::PointCloud2 cloud_msg;
+    pcl::toROSMsg(*mycloud,cloud_msg);
+    cloud_msg.header.frame_id = "base_link";
+    cloud_msg.header.stamp = this->now();
+    pc_publisher_->publish(cloud_msg);
+
+    return 0;
+}
 
 int run(cv::Mat &src,cv::Mat &canvas,cv::Mat &dep) {
     // 读取图像
@@ -133,64 +232,6 @@ int rectshape(cv::Mat &src,cv::Mat &mask,cv::Mat depth_i) {
       return 0;
 }
 
-
-
-
-int rgbd_pcl(cv::Mat &depthImage) {
-    // 假设depthImage和rgbImage是您的深度图和RGB
-
-    if (depthImage.empty() ) {
-        std::cerr << "无法读取图像!" << std::endl;
-        return -1;
-    }
-
-    int height = depthImage.rows;
-    int width = depthImage.cols;
-
-    // 相机内参
-    double fx = 431.1919860839844*1280/848;
-    double fy = 431.1919860839844*720/480;
-    double cx = 430.00750732421875*1280/848;
-    double cy = 238.7722930908203*720/480;
-
-    // 存储点云数据
-        pcl::PointCloud<pcl::PointXYZ>::Ptr depth_cloud(new pcl::PointCloud<pcl::PointXYZ>);
-        for (int v = 0; v < height; ++v) {
-          for (int u = 0; u < width; ++u) {
-            float z = depthImage.at<float>(v, u)/1000; // 读取深度值
-            if (z > 0.2) { // 确保深度值有效
-                double x = (u - cx) * z / fx;
-                double y = (v - cy) * z / fy;
-                pcl::PointXYZ point;
-                Eigen::Vector3d ptmp(z,-x,-y);
-                // Eigen::Matrix3d R;
-                // R<<0,0,1,-1,0,0,0,-1,0;
-                // ptmp(0) = x;
-                // ptmp(1) = y;
-                // ptmp(2) = z;
-                // ptmp = R*ptmp;
-                point.x = ptmp(0);
-                point.y = ptmp(1);
-                point.z = ptmp(2);
-
-
-                depth_cloud->push_back(point);// 存储三维坐标
-                
-            }
-        }
-    }
-    sensor_msgs::msg::PointCloud2 cloud_msg;
-    //pcl::toROSMsg(*grid_cloud, cloud_msg);
-    pcl::toROSMsg(*depth_cloud,cloud_msg);
-    cloud_msg.header.frame_id = "base_link";
-    cloud_msg.header.stamp = this->now();
-    pc_publisher_->publish(cloud_msg);
-
-    return 0;
-}
-
-
-
 int getHSV() {
     // 读取图像
     cv::Mat image = cv::imread("output.jpg");
@@ -226,28 +267,12 @@ int getHSV() {
 
     return 0;
 }
-
-
-  rclcpp::Subscription<realsense2_camera_msgs::msg::RGBD>::SharedPtr rgbd_sub_;
-  rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pc_publisher_;
-
-  cv::Rect targetMineral; //目标
-  cv::Point center;//目标中心
-  cv::Rect2d lastRect = targetMineral;
-  bool initial;
-  bool success;
-  std::vector<cv::Rect> detectionBoxes;//检测框
-  cv::Mat rgb_image;
-  cv::Mat depth_image;
-  cv::Mat canvas;
-
 };
 
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
-  auto node = std::make_shared<RGBDPointInfoNode>();
-  rclcpp::spin(node);
+  rclcpp::spin(std::make_shared<RGBDPointInfoNode>());
   rclcpp::shutdown();
   return 0;
 }

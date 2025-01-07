@@ -20,6 +20,11 @@ find_package(ament_cmake REQUIRED)
 find_package(pcl_conversions REQUIRED)
 find_package(VTK REQUIRED)  # 添加这一行
 find_package(rcl_interfaces REQUIRED)  # 添加这一行
+# find_package(OpenCV REQUIRED)
+find_package(geometry_msgs REQUIRED)
+
+
+
 
 include_directories(
     include
@@ -30,6 +35,7 @@ include_directories(
     ${pcl_conversions_INCLUDE_DIRS}
     ${VTK_INCLUDE_DIRS}
     ${rcl_interfaces_INCLUDE_DIRS}  # 添加这一行
+    # ${OpenCV_INCLUDE_DIRS}
 )
 
 add_executable(color_icp_node src/color_icp.cpp)
@@ -44,6 +50,61 @@ target_link_libraries(color_icp_node PRIVATE
     ${pcl_conversions_LIBRARIES}
     ${VTK_LIBRARIES}
     ${rcl_interfaces_LIBRARIES}
+    # /usr/lib/x86_64-linux-gnu/libopencv_stitching.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_alphamat.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_aruco.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_barcode.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_bgsegm.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_bioinspired.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_ccalib.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_dnn_objdetect.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_dnn_superres.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_dpm.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_face.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_freetype.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_fuzzy.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_hdf.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_hfs.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_img_hash.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_intensity_transform.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_line_descriptor.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_mcc.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_quality.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_rapid.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_reg.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_rgbd.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_saliency.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_shape.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_stereo.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_structured_light.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_phase_unwrapping.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_superres.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_optflow.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_surface_matching.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_tracking.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_highgui.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_datasets.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_text.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_plot.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_ml.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_videostab.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_videoio.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_viz.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_wechat_qrcode.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_ximgproc.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_video.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_xobjdetect.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_objdetect.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_calib3d.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_imgcodecs.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_features2d.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_dnn.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_flann.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_xphoto.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_photo.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_imgproc.so
+    # /usr/lib/x86_64-linux-gnu/libopencv_core.so 
+
 )
 
 target_link_libraries(optimization PRIVATE

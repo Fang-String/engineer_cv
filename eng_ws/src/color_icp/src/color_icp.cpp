@@ -15,6 +15,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <pcl_conversions/pcl_conversions.h>
+#include <geometry_msgs/msg/pose_stamped.hpp>
 
 #include "color_icp/helper.h"
 #include "color_icp/remove_nan.h"
@@ -64,6 +65,7 @@ class ColorICP {
     Eigen::Vector3d rgb_to_intensity_weight_;
     Eigen::Matrix4d transformation_;
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr targetSub;
+    int a;
 
 
 
