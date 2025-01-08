@@ -3,8 +3,84 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 import cv2
+import rclpy
 from PIL import Image
 from segment_anything import sam_model_registry, SamPredictor
+from sensor_msgs_py.point_cloud2 import create_cloud
+from sensor_msgs.msg import PointCloud2, PointField,Image
+from cv_bridge import CvBridge
+from realsense2_camera_msgs.msg import RGBD
+from rclpy.node import Node
+import yaml
+import struct
+import open3d as o3d
+
+
+sam_checkpoint = "/home/ubuntu/tools/engineer_cv/eng_ws/scripts/sam_4_eng/data/sam_vit_b_01ec64.pth"
+model_type = "vit_b"
+device = "cuda"
+
+sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
+sam.to(device=device)
+
+predictor = SamPredictor(sam)
+
+# 设置输入文件夹和输出文件夹
+input_folder = "/home/ubuntu/tools/engineer_cv/eng_ws/scripts/sam_4_eng/images"  # 输入图片文件夹
+output_folder = "/home/ubuntu/tools/engineer_cv/eng_ws/scripts/sam_4_eng/masks"  # 输出掩码文件夹
+
+class SAM_MASK(Node):
+    def __init__(self):
+        super().__init__('rgbd_to_mask')
+
+        # 订阅 RGBD 图像
+        self.rgbd_sub = self.create_subscription(
+            RGBD,
+            '/camera/camera/rgbd',  # 订阅的 RGBD 图像话题
+            self.rgbd_callback,
+            10
+        )
+        self.get_logger().info("Subscribing to RGBD images")
+        self.trigger_sub = self.create_subscription(
+            bool,
+            'tmp_trigger',  # 订阅的 触发话题
+            self.trigger_callback,
+            10
+        )
+        self.get_logger().info("Subscribing to RGBD images")
+
+        # 发布mask
+        self.mask_pub = self.create_publisher(Image, '/tmpmask', 10)
+        self.get_logger().info("Publishing tmp mask")
+
+        # CvBridge 实例
+        self.bridge = CvBridge()
+        self.get_logger().info("CvBridge initialized")
+
+        # 初始化变量
+        self.rgb_image = None
+        self.mask_image = None
+        self.status = False
+
+        # 创建一个3秒的定时器
+        # self.timer = self.create_timer(1.0, self.save_data)
+    
+    def rgbd_callback(self, msg):
+        if(not self.status):
+            return
+        
+        self.rgb_image = self.bridge.imgmsg_to_cv2(msg.rgb, "bgr8")
+        self.get_logger().info("rgbd image received")
+        self.mask = process_image(self.rgb_image, self.predictor)
+        self.mask_pub.publish(self.bridge.cv2_to_imgmsg(self.mask, "mono8"))
+        self.get_logger().info("mask published")
+        self.status = False
+
+    def trigger_callback(self, msg):
+        self.status = msg.data
+        self.get_logger().info("Trigger received")
+
+
 
 
 # 控制标记目标的状态
@@ -202,19 +278,8 @@ def batch_process_images(folder_path, output_folder, predictor):
             # print(f"Saved mask for {filename} as {maskb_filename}")
 
 # 初始化模型
-sam_checkpoint = "/home/ubuntu/tools/engineer_cv/eng_ws/scripts/sam_4_eng/data/sam_vit_b_01ec64.pth"
-model_type = "vit_b"
-device = "cuda"
 
-sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
-sam.to(device=device)
-
-predictor = SamPredictor(sam)
-
-# 设置输入文件夹和输出文件夹
-input_folder = "/home/ubuntu/tools/engineer_cv/eng_ws/scripts/sam_4_eng/images"  # 输入图片文件夹
-output_folder = "/home/ubuntu/tools/engineer_cv/eng_ws/scripts/sam_4_eng/masks"  # 输出掩码文件夹
 
 # 批量处理图片
-batch_process_images(input_folder, output_folder, predictor)
+# batch_process_images(input_folder, output_folder, predictor)
 
