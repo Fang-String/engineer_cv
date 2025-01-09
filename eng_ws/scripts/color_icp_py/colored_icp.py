@@ -62,33 +62,42 @@ if __name__ == "__main__":
     # parameters
     voxel_size = 0.01
     max_corres_dist = 5*voxel_size
-    transformation = np.identity(4)
+    trans_init = np.asarray([
+        [-0.51      , -0.86 , 0.       ,  0.09      ],
+        [ 0.86 ,-0.49      ,  0.       ,  0.22      ],
+        [ 0.     ,    0.    ,     1.      ,   0.145     ],
+        [ 0.     ,    0.      ,   0.     ,    1.       ]])
+    transformation = trans_init
     # trans_init = np.asarray([[0.862, 0.011, -0.507, 0.5],
     #                         [-0.139, 0.967, -0.215, 0.7],
     #                         [0.487, 0.255, 0.835, -1.4], [0.0, 0.0, 0.0, 1.0]])
 
     # load point clouds
-    source = o3d.io.read_point_cloud("eng_ws/scripts/color_icp/data/cloud_bin_00_easy.pcd")
-    target = o3d.io.read_point_cloud("eng_ws/scripts/color_icp/data/cloud_bin_00.pcd")
+    target = o3d.io.read_point_cloud("/home/ubuntu/step2pcd/transformed_cube.pcd")
+    source = o3d.io.read_point_cloud("/home/ubuntu/step2pcd/cube.pcd")
     # source = o3d.io.read_point_cloud("../data/frag_115.ply")
     # target = o3d.io.read_point_cloud("../data/frag_116.ply")
     print("Loaded " + str(len(source.points)) + " points for source point cloud")
     print("Loaded " + str(len(target.points)) + " points for target point cloud")
-    
+
+    source.transform(trans_init)
     # estimate normals
     # source.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=2*voxel_size, max_nn=16))
     # target.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=2*voxel_size, max_nn=16))
     # print("Estimated normals for source and target point clouds")
 
-    # # show initial alignment
+    # show initial alignment
     # print("Initial alignment")
     # print(o3d.pipelines.registration.evaluate_registration(source, target, max_corres_dist))
-    # draw_registration_result(source, target, transformation, color=False)
+    # draw_registration_result(source, target, transformation, color=True)
 
     # # ICP
     # icp_registration(source, target, max_corres_dist)
+    # draw_registration_result(source, target, transformation, color=False)
 
     # colored ICP
+
     colored_icp_registration(source, target, voxel_size)
+    # draw_registration_result(source, target, transformation, color=True)
     end_time = time.time()  # 记录结束时间
     print(f"Colored ICP registration took {end_time - start_time:.4f} seconds")  # 计算并打印耗时
