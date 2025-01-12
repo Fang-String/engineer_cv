@@ -300,17 +300,19 @@ def sam4cpp(args=None):
     rclpy.init(args=args)
     rclpy.logging.get_logger('rclpy.executors').set_level(rclpy.logging.LoggingSeverity.WARN)
     node = SAM_MASK()
-    executor = rclpy.executors.SingleThreadedExecutor()
-    executor.add_node(node)
+    rclpy.spin(node)
+    
+    # executor = rclpy.executors.SingleThreadedExecutor()
+    # executor.add_node(node)
 
-    try:
-        while rclpy.ok() and not node.processed_once:
-            executor.spin_once(timeout_sec=5.0)
-    finally:
-        node.destroy_node()
-        executor.shutdown()
-        rclpy.shutdown()
-        print("Node has been destroyed and rclpy has been shut down.")
+    # try:
+    #     while rclpy.ok() and not node.processed_once:
+    #         executor.spin_once(timeout_sec=5.0)
+    # finally:
+    #     node.destroy_node()
+    #     executor.shutdown()
+    #     rclpy.shutdown()
+    #     print("Node has been destroyed and rclpy has been shut down.")
 
 # if __name__ == "__main__":
 sam4cpp()

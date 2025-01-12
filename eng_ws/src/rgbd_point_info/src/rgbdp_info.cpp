@@ -95,13 +95,13 @@ int rgbd_pcl(cv::Mat rgbImage,cv::Mat depthImage) {
     cv::Mat rgb_image_u = rgb_image_.clone();
 
 
-    if (depth_image.empty() ) {
+    if (depth_image_.empty() ) {
         std::cerr << "无法读取图像!" << std::endl;
         return -1;
     }
 
-    int height = depth_image.rows;
-    int width = depth_image.cols;
+    int height = depth_image_.rows;
+    int width = depth_image_.cols;
 
     // 相机内参
     double fx = camera_matrix_.at<double>(0, 0);
@@ -109,7 +109,7 @@ int rgbd_pcl(cv::Mat rgbImage,cv::Mat depthImage) {
     double cx = camera_matrix_.at<double>(0, 2);
     double cy = camera_matrix_.at<double>(1, 2);
     //去畸变
-    cv::undistort(rgb_image_u,rgb_image,camera_matrix_,dist_coeffs_);
+    cv::undistort(rgb_image_u,rgb_image_,camera_matrix_,dist_coeffs_);
 
 
     // 存储点云数据
@@ -118,13 +118,13 @@ int rgbd_pcl(cv::Mat rgbImage,cv::Mat depthImage) {
           for (int u = 0; u < width; ++u) {
             float z;
             // if(mask.at<int>(v,u)>0)
-            {z = depth_image.at<float>(v, u)/1000;}// 读取深度
+            {z = depth_image_.at<float>(v, u)/1000;}// 读取深度
             // else {z=0;}
             if (z > 0.35&&z<0.8) { // 确保深度值有效
                 double x = (u - cx) * z / fx;
                 double y = (v - cy) * z / fy;
                 pcl::PointXYZRGB point;
-                cv::Vec3b color = rgb_image.at<cv::Vec3b>(v, u);
+                cv::Vec3b color = rgb_image_.at<cv::Vec3b>(v, u);
                 uint8_t r = color[2];  // OpenCV 的颜色顺序为 BGR
                 uint8_t g = color[1];
                 uint8_t b = color[0];
