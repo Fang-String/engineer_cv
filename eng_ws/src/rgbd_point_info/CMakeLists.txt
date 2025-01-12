@@ -33,6 +33,7 @@ target_include_directories(rgbdp_info_node PRIVATE
     $<INSTALL_INTERFACE:include>
 )
 target_link_libraries(rgbdp_info_node
+    ${OpenCV_LIBS}
     # /usr/lib/x86_64-linux-gnu/libopencv_stitching.so
     # /usr/lib/x86_64-linux-gnu/libopencv_alphamat.so
     # /usr/lib/x86_64-linux-gnu/libopencv_aruco.so
@@ -109,6 +110,10 @@ ament_target_dependencies(rgbdp_info_node
 install(TARGETS
     rgbdp_info_node
     DESTINATION lib/${PROJECT_NAME}
+)
+
+install(DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}/
 )
 
 ament_package()

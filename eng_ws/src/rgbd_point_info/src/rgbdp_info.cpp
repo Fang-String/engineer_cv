@@ -29,8 +29,7 @@ public:
     mask_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
       "/mymask", 10, std::bind(&RGBDPointInfoNode::mask_callback, this, std::placeholders::_1));
     cv::namedWindow("RGB Image", cv::WINDOW_NORMAL);
-    pc_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/mypointcloud",10);
-    rgb_publisher_ = this->create_publisher<sensor_msgs::msg::Image>("/myrgb",10);
+    pc_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/mypointscpp",10);
   }
 
 
@@ -52,6 +51,7 @@ private:
       // 将ROS图像消息转换为OpenCV图像
     rgb_image = cv_bridge::toCvCopy(msg->rgb, "bgr8")->image;
     depth_image = cv_bridge::toCvCopy(msg->depth, "32FC1")->image;
+    rgbd_pcl(rgb_image,depth_image);
   }
 
   void mask_callback(const sensor_msgs::msg::Image::SharedPtr msg)
@@ -92,6 +92,7 @@ int rgbd_pcl(cv::Mat rgbImage,cv::Mat depthImage) {
     // 假设depth_image和rgbImage是您的深度图和RGB
     cv::Mat rgb_image_ = rgbImage;
     cv::Mat depth_image_ = depthImage;
+    cv::Mat rgb_image_u = rgb_image_.clone();
 
 
     if (depth_image.empty() ) {
@@ -106,9 +107,9 @@ int rgbd_pcl(cv::Mat rgbImage,cv::Mat depthImage) {
     double fx = camera_matrix_.at<double>(0, 0);
     double fy = camera_matrix_.at<double>(1, 1);
     double cx = camera_matrix_.at<double>(0, 2);
-    double cy = camera_matrix_.at<double>(1, 2);\
+    double cy = camera_matrix_.at<double>(1, 2);
     //去畸变
-    cv::undistort(rgb_image,rgb_image,camera_matrix_,dist_coeffs_);
+    cv::undistort(rgb_image_u,rgb_image,camera_matrix_,dist_coeffs_);
 
 
     // 存储点云数据
@@ -116,8 +117,9 @@ int rgbd_pcl(cv::Mat rgbImage,cv::Mat depthImage) {
         for (int v = 0; v < height; ++v) {
           for (int u = 0; u < width; ++u) {
             float z;
-            if(mask.at<int>(v,u)>0){z = depth_image.at<float>(v, u)/1000;}// 读取深度
-            else {z=0;}
+            // if(mask.at<int>(v,u)>0)
+            {z = depth_image.at<float>(v, u)/1000;}// 读取深度
+            // else {z=0;}
             if (z > 0.35&&z<0.8) { // 确保深度值有效
                 double x = (u - cx) * z / fx;
                 double y = (v - cy) * z / fy;
@@ -126,9 +128,9 @@ int rgbd_pcl(cv::Mat rgbImage,cv::Mat depthImage) {
                 uint8_t r = color[2];  // OpenCV 的颜色顺序为 BGR
                 uint8_t g = color[1];
                 uint8_t b = color[0];
-                point.x = z;
-                point.y = -x;
-                point.z = -y;//相机坐标系和世界坐标系转换
+                point.x = x;
+                point.y = y;
+                point.z = z;//相机坐标系和世界坐标系转换
                 point.r = r;
                 point.g = g;
                 point.b = b;
@@ -139,9 +141,10 @@ int rgbd_pcl(cv::Mat rgbImage,cv::Mat depthImage) {
     }
     sensor_msgs::msg::PointCloud2 cloud_msg;
     pcl::toROSMsg(*mycloud,cloud_msg);
-    cloud_msg.header.frame_id = "base_link";
+    cloud_msg.header.frame_id = "camera_color_optical_frame";
     cloud_msg.header.stamp = this->now();
     pc_publisher_->publish(cloud_msg);
+    RCLCPP_INFO(this->get_logger(), "pc pubed %d",int(mycloud->size()));
 
     return 0;
 }

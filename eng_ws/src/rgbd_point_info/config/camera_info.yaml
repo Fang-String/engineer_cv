@@ -2,7 +2,7 @@ camera_name: rs_d455
 camera_matrix:
   rows: 3
   cols: 3
-  data: [650.856, 0, 649.068, 0, 650.856, 358.147, 0, 0, 1]
+  data: [650.856, 0.0, 649.068, 0.0, 650.856, 358.147, 0.0, 0.0, 1.0]
 distortion_model: plumb_bob
 distortion_coefficients:
   rows: 1
@@ -11,8 +11,8 @@ distortion_coefficients:
 rectification_matrix:
   rows: 3
   cols: 3
-  data: [1, 0, 0, 0, 1, 0, 0, 0, 1]
+  data: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
 projection_matrix:
   rows: 3
   cols: 4
-  data: [650.856, 0, 649.068, 0, 0, 650.856, 358.147, 0, 0, 0, 1, 0]
+  data: [650.856, 0.0, 649.068, 0.0, 0.0, 650.856, 358.147, 0.0, 0.0, 0.0, 1.0, 0.0]
