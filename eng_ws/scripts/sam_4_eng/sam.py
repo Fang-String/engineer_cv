@@ -23,7 +23,7 @@ device = "cuda"
 sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
 sam.to(device=device)
 
-predictor = SamPredictor(sam)
+
 
 # 设置输入文件夹和输出文件夹
 input_folder = "/home/ubuntu/tools/engineer_cv/eng_ws/scripts/sam_4_eng/images"  # 输入图片文件夹
@@ -251,33 +251,41 @@ class SAM_MASK(Node):
         # CvBridge 实例
         self.bridge = CvBridge()
         self.get_logger().info("CvBridge initialized")
+        
 
         # 初始化变量
         self.rgb_image = None
         self.mask_image = None
         self.status = False
-        sam_checkpoint = "/home/ubuntu/tools/engineer_cv/eng_ws/scripts/sam_4_eng/data/sam_vit_b_01ec64.pth"
-        model_type = "vit_b"
-        device = "cuda"
-
-        sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
-        sam.to(device=device)
-
-        predictor = SamPredictor(sam)
-
+        self.processed_once = False 
+        self.predictor = SamPredictor(sam)
         # 创建一个3秒的定时器
         # self.timer = self.create_timer(1.0, self.save_data)
     
     def rgbd_callback(self, msg):
         if not self.status:
             return
+        try:
+            # 打印实际的编码格式进行调试
+            print(f"RGB image encoding: {msg.rgb.encoding}")
+            self.rgb_image = self.bridge.imgmsg_to_cv2(msg.rgb, "rgb8")
+        except AttributeError as e:
+            print(f"AttributeError occurred: {e}")
+            # 处理异常情况
+        except cv2.error as e:
+            print(f"OpenCV error occurred: {e}")
+            # 处理异常情况
         
-        self.rgb_image = self.bridge.imgmsg_to_cv2(msg.rgb, "rgb8")
         self.get_logger().info("rgbd image received")
-        self.mask = process_image(self.rgb_image, predictor, 1)
+        self.mask = process_image(self.rgb_image, self.predictor, 1)
         self.mask_pub.publish(self.bridge.cv2_to_imgmsg(self.mask, "mono8"))
         self.get_logger().info("mask published")
         self.status = False
+        self.processed_once = True  # 设置标志位为已处理
+        # 销毁节点并关闭 rclpy
+        #self.destroy_node()
+
+
 
     def trigger_callback(self, msg):
         self.status = msg.data
@@ -288,12 +296,21 @@ class SAM_MASK(Node):
 # 批量处理图片
 # batch_process_images(input_folder, output_folder, predictor)
 
-def main(args=None):
+def sam4cpp(args=None):
     rclpy.init(args=args)
+    rclpy.logging.get_logger('rclpy.executors').set_level(rclpy.logging.LoggingSeverity.WARN)
     node = SAM_MASK()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+    executor = rclpy.executors.SingleThreadedExecutor()
+    executor.add_node(node)
 
-if __name__ == "__main__":
-    main()
+    try:
+        while rclpy.ok() and not node.processed_once:
+            executor.spin_once(timeout_sec=5.0)
+    finally:
+        node.destroy_node()
+        executor.shutdown()
+        rclpy.shutdown()
+        print("Node has been destroyed and rclpy has been shut down.")
+
+# if __name__ == "__main__":
+sam4cpp()
