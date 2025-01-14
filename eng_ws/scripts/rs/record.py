@@ -36,7 +36,7 @@ class RGBDSaver(Node):
     def save_data(self):
         if self.rgb_image is not None:
             # 构建保存路径
-            save_path = f'/home/ubuntu/tools/scripts/img2train/rgb_image_{self.image_count + 1}.png'#1可以改成其他数字
+            save_path = f'/home/ubuntu/tools/engineer_cv/eng_ws/scripts/rs/img2train/{self.image_count + 1}.png'#1可以改成其他数字
             
             # 保存 RGB 图像为 PNG 文件
             cv2.imwrite(save_path, self.rgb_image)

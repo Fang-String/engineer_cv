@@ -283,7 +283,7 @@ class SAM_MASK(Node):
         self.status = False
         self.processed_once = True  # 设置标志位为已处理
         # 销毁节点并关闭 rclpy
-        #self.destroy_node()
+        # self.destroy_node()
 
 
 
@@ -302,17 +302,17 @@ def sam4cpp(args=None):
     node = SAM_MASK()
     rclpy.spin(node)
     
-    # executor = rclpy.executors.SingleThreadedExecutor()
-    # executor.add_node(node)
+    executor = rclpy.executors.SingleThreadedExecutor()
+    executor.add_node(node)
 
-    # try:
-    #     while rclpy.ok() and not node.processed_once:
-    #         executor.spin_once(timeout_sec=5.0)
-    # finally:
-    #     node.destroy_node()
-    #     executor.shutdown()
-    #     rclpy.shutdown()
-    #     print("Node has been destroyed and rclpy has been shut down.")
+    try:
+        while rclpy.ok() and not node.processed_once:
+            executor.spin_once(timeout_sec=5.0)
+    finally:
+        node.destroy_node()
+        executor.shutdown()
+        rclpy.shutdown()
+        print("Node has been destroyed and rclpy has been shut down.")
 
 # if __name__ == "__main__":
 sam4cpp()
